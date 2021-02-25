@@ -1,6 +1,8 @@
 const express = require('express')
 const LanguageService = require('./language-service')
 const { requireAuth } = require('../middleware/jwt-auth')
+const LinkedList = require('./lang-linked-list')
+const { insertUser } = require('../user/user-service')
 
 const languageRouter = express.Router()
 
@@ -18,7 +20,7 @@ languageRouter
           error: `You don't have any languages`,
         })
 
-      req.language = language
+      req.language = language;
       next()
     } catch (error) {
       next(error)
@@ -45,14 +47,138 @@ languageRouter
 
 languageRouter
   .get('/head', async (req, res, next) => {
-    // implement me
-    res.send('implement me!')
+    try {
+      const words = await LanguageService.getLanguageWords(
+        req.app.get('db'),
+        req.language.id,
+      )
+
+      const headWord = words.find(el => el.id === req.language.head);
+
+      res.status(200).json({
+        nextWord: headWord.original, 
+        totalScore: req.language.total_score,
+        wordCorrectCount: headWord.correct_count,
+        wordIncorrectCount: headWord.incorrect_count
+      })
+      next()
+    }
+    catch (error) {
+      next(error)
+    }
   })
 
 languageRouter
   .post('/guess', async (req, res, next) => {
-    // implement me
-    res.send('implement me!')
+    const { body } = req;
+
+    if (!body || !body.guess) {
+      return res.status(400).json({ error: `Missing 'guess' in request body`})
+    }
+
+    const getWords = async () => {
+      const words = await LanguageService.getLanguageWords(
+          req.app.get('db'),
+          req.language.id,
+      )
+        return await words;
+      }
+
+    const h = req.language.head;
+    const words = await getWords();
+    let headWord = {};
+    await Object.assign(headWord, words.find(el => el.id === h));
+
+    const wordsLinkedList = new LinkedList();
+    let el = words.find(w => w.id === 1)
+    while (el) {
+      wordsLinkedList.insert(el)
+      el = words.find(w => w.id === el.next)
+    }
+    console.log("WordsLinkedList", wordsLinkedList.all());
+    // words.forEach((el => {
+    //   wordsLinkedList.insert(el);
+    // }))
+
+    const updateWords = async () => {
+      const words = await wordsLinkedList.all();
+      await words.forEach(async el => {     
+        await LanguageService.updateLanguageWords(
+          req.app.get('db'),
+          el.id,
+          el
+        )
+      })
+    }
+
+    const getNextWord = async () => {
+      await updateWords();
+      const newWords = await getWords();
+      return await newWords.find(el => el.id === wordsLinkedList.head.value.id);
+    }
+
+    const getWord = async (id) => {
+      await updateWords();
+      const newWords = await getWords();
+      return await newWords.find(el => parseInt(el.id) === parseInt(id));
+    }
+
+    if (body.guess === headWord.translation) {
+      try {
+        await wordsLinkedList.correct();
+        await LanguageService.updateUsersTotalScore(
+        req.app.get('db'),
+        req.user.id,
+        req.language.total_score + 1,
+        );
+        const nextWord = await getNextWord();
+        await LanguageService.updateUsersLanguageHead(
+          req.app.get('db'),
+          req.user.id,
+          nextWord.id
+          );
+
+        return await res.status(200).json({
+        nextWord: nextWord.original,
+        totalScore: req.language.total_score + 1,
+        wordCorrectCount: headWord.correct_count + 1,
+        wordIncorrectCount: headWord.incorrect_count,
+        answer: headWord.translation,
+        isCorrect: true
+        })
+      }
+      catch(error) {
+        next(error)
+      }
+    }
+
+    else {
+      try {
+        console.log('Headword',headWord);
+        headWord = await getWord(headWord.id)
+        console.log('Headword',headWord);
+      await wordsLinkedList.incorrect();
+      console.log("WordsLinkedList", wordsLinkedList.all());
+      const nextWord = await getNextWord();
+      await LanguageService.updateUsersLanguageHead(
+        req.app.get('db'),
+        req.user.id,
+        nextWord.id
+        );
+      console.log('Nexword', nextWord)
+      return await res.status(200).json({
+        nextWord: nextWord.original,
+        totalScore: req.language.total_score,
+        wordCorrectCount: headWord.correct_count,
+        wordIncorrectCount: headWord.incorrect_count,
+        answer: headWord.translation,
+        isCorrect: false
+      })
+    } 
+    catch (error) {
+      next(error);
+      }
+    }
   })
 
 module.exports = languageRouter

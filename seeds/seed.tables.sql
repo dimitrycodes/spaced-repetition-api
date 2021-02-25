@@ -1,6 +1,6 @@
 BEGIN;
 
-TRUNCATE
+TRUNCATE 
   "word",
   "language",
   "user";
@@ -21,14 +21,17 @@ VALUES
 
 INSERT INTO "word" ("id", "language_id", "original", "translation", "next")
 VALUES
-  (1, 1, 'entraine toi', 'practice', 2),
-  (2, 1, 'bonjour', 'hello', 3),
-  (3, 1, 'maison', 'house', 4),
-  (4, 1, 'développeur', 'developer', 5),
-  (5, 1, 'traduire', 'translate', 6),
-  (6, 1, 'incroyable', 'amazing', 7),
-  (7, 1, 'chien', 'dog', 8),
-  (8, 1, 'chat', 'cat', null);
+  (1, 1, 'amour', 'love', 2),
+  (2, 1, 'sac', 'sack', 3),
+  (3, 1, 'langue', 'language', 4),
+  (4, 1, 'peau', 'skin', 5),
+  (5, 1, 'fenêtre', 'window', 6),
+  (6, 1, 'maison', 'house', 7),
+  (7, 1, 'tête', 'head', 8),
+  (8, 1, 'nez', 'nose', 9),
+  (9, 1, 'chien', 'dog', 10),
+  (10, 1, 'chat', 'cat', 11),
+  (11, 1, 'foule', 'crowd', null);
 
 UPDATE "language" SET head = 1 WHERE id = 1;
 
