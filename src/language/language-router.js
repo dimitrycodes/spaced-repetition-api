@@ -95,7 +95,7 @@ languageRouter
       wordsLinkedList.insert(el)
       el = words.find(w => w.id === el.next)
     }
-    console.log("WordsLinkedList", wordsLinkedList.all());
+    //console.log("WordsLinkedList", wordsLinkedList.all());
     // words.forEach((el => {
     //   wordsLinkedList.insert(el);
     // }))
@@ -154,18 +154,18 @@ languageRouter
 
     else {
       try {
-        console.log('Headword',headWord);
+        //console.log('Headword',headWord);
         headWord = await getWord(headWord.id)
-        console.log('Headword',headWord);
+        //console.log('Headword',headWord);
       await wordsLinkedList.incorrect();
-      console.log("WordsLinkedList", wordsLinkedList.all());
+      //console.log("WordsLinkedList", wordsLinkedList.all());
       const nextWord = await getNextWord();
       await LanguageService.updateUsersLanguageHead(
         req.app.get('db'),
         req.user.id,
         nextWord.id
         );
-      console.log('Nexword', nextWord)
+      //console.log('Nexword', nextWord)
       return await res.status(200).json({
         nextWord: nextWord.original,
         totalScore: req.language.total_score,
